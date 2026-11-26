@@ -1,0 +1,6 @@
+{
+  "name": "MikeyFlix Studios — Video Editing & Creative Portfolio",
+  "description": "Cinematic video editing portfolio, interactive visual canvas editor, and unlisted client screening links for MikeyFlix Studios.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

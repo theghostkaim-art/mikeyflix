@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Authorized studio administrator profile.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "format": "email", "maxLength": 200 },
+        "role": { "type": "string", "enum": ["admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "PortfolioConfig": {
+      "title": "PortfolioConfig",
+      "description": "Published studio portfolio configuration including theme, typography, videos, copy, pricing plans, contact channels, and agreement details.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "brandName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "tagline": { "type": "string", "minLength": 1, "maxLength": 140 },
+        "manifestoQuote": { "type": "string", "maxLength": 800 },
+        "theme": { "type": "object" },
+        "videos": { "type": "array" },
+        "about": { "type": "object" },
+        "services": { "type": "array" },
+        "contact": { "type": "object" },
+        "agreement": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "brandName",
+        "tagline",
+        "manifestoQuote",
+        "theme",
+        "videos",
+        "about",
+        "services",
+        "contact",
+        "agreement",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ClientLink": {
+      "title": "ClientLink",
+      "description": "Unlisted custom client showcase link with curated videos and optional visual theme overrides.",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "slug": { "type": "string", "minLength": 2, "maxLength": 80, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "clientName": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "projectTitle": { "type": "string", "minLength": 1, "maxLength": 160 },
+        "welcomeNote": { "type": "string", "maxLength": 600 },
+        "hideYoutubeLinks": { "type": "boolean" },
+        "showFullPortfolio": { "type": "boolean" },
+        "themeOverride": { "type": "object" },
+        "videos": { "type": "array" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": [
+        "ownerId",
+        "slug",
+        "clientName",
+        "projectTitle",
+        "welcomeNote",
+        "hideYoutubeLinks",
+        "showFullPortfolio",
+        "themeOverride",
+        "videos",
+        "active",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Studio administrator lookup documents."
+    },
+    "/portfolios/{portfolioId}": {
+      "schema": { "$ref": "#/entities/PortfolioConfig" },
+      "description": "Published studio portfolio configuration (e.g., portfolios/main)."
+    },
+    "/clientLinks/{linkId}": {
+      "schema": { "$ref": "#/entities/ClientLink" },
+      "description": "Unlisted private showcase links shared directly with clients."
+    }
+  }
+}

@@ -1,0 +1,205 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'theghostkaim@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidTheme(theme) {
+      return theme is map
+        && theme.keys().hasAll(['bgColor', 'surfaceColor', 'accentColor', 'secondaryAccent', 'textColor', 'heroBgColor', 'displayFont', 'bodyFont', 'fontScale'])
+        && theme.keys().hasOnly(['bgColor', 'surfaceColor', 'accentColor', 'secondaryAccent', 'textColor', 'heroBgColor', 'displayFont', 'bodyFont', 'fontScale'])
+        && theme.bgColor is string && theme.bgColor.size() <= 32
+        && theme.surfaceColor is string && theme.surfaceColor.size() <= 32
+        && theme.accentColor is string && theme.accentColor.size() <= 32
+        && theme.secondaryAccent is string && theme.secondaryAccent.size() <= 32
+        && theme.textColor is string && theme.textColor.size() <= 32
+        && theme.heroBgColor is string && theme.heroBgColor.size() <= 32
+        && theme.displayFont is string && theme.displayFont.size() <= 80
+        && theme.bodyFont is string && theme.bodyFont.size() <= 80
+        && theme.fontScale is number && theme.fontScale >= 0.75 && theme.fontScale <= 1.35;
+    }
+
+    function isValidThemeOverride(theme) {
+      return theme is map
+        && theme.keys().hasOnly(['bgColor', 'accentColor', 'displayFont', 'bodyFont'])
+        && (!('bgColor' in theme) || (theme.bgColor is string && theme.bgColor.size() <= 32))
+        && (!('accentColor' in theme) || (theme.accentColor is string && theme.accentColor.size() <= 32))
+        && (!('displayFont' in theme) || (theme.displayFont is string && theme.displayFont.size() <= 80))
+        && (!('bodyFont' in theme) || (theme.bodyFont is string && theme.bodyFont.size() <= 80));
+    }
+
+    function isValidAbout(about) {
+      return about is map
+        && about.keys().hasAll(['founderName', 'title', 'whatWeDo', 'whatYouGain', 'problemStatement', 'whoWeWorkWith'])
+        && about.keys().hasOnly(['founderName', 'title', 'whatWeDo', 'whatYouGain', 'problemStatement', 'whoWeWorkWith'])
+        && about.founderName is string && about.founderName.size() <= 120
+        && about.title is string && about.title.size() <= 80
+        && about.whatWeDo is list && about.whatWeDo.size() <= 10
+        && about.whatYouGain is list && about.whatYouGain.size() <= 10
+        && about.problemStatement is list && about.problemStatement.size() <= 10
+        && about.whoWeWorkWith is string && about.whoWeWorkWith.size() <= 400;
+    }
+
+    function isValidContact(contact) {
+      return contact is map
+        && contact.keys().hasAll(['headline', 'subheadline', 'whatsappUrl', 'emailAddress', 'phoneNumber'])
+        && contact.keys().hasOnly(['headline', 'subheadline', 'whatsappUrl', 'emailAddress', 'phoneNumber'])
+        && contact.headline is string && contact.headline.size() <= 120
+        && contact.subheadline is string && contact.subheadline.size() <= 240
+        && contact.whatsappUrl is string && contact.whatsappUrl.size() <= 300
+        && contact.emailAddress is string && contact.emailAddress.size() <= 200
+        && contact.phoneNumber is string && contact.phoneNumber.size() <= 40;
+    }
+
+    function isValidAgreement(agreement) {
+      return agreement is map
+        && agreement.keys().hasAll(['title', 'subtitle', 'summaryNote', 'partnershipLabel', 'terms'])
+        && agreement.keys().hasOnly(['title', 'subtitle', 'summaryNote', 'partnershipLabel', 'terms'])
+        && agreement.title is string && agreement.title.size() <= 120
+        && agreement.subtitle is string && agreement.subtitle.size() <= 160
+        && agreement.summaryNote is string && agreement.summaryNote.size() <= 400
+        && agreement.partnershipLabel is string && agreement.partnershipLabel.size() <= 160
+        && agreement.terms is list && agreement.terms.size() <= 12;
+    }
+
+    function isValidPortfolio(data) {
+      return data.keys().hasAll([
+          'ownerId', 'brandName', 'tagline', 'manifestoQuote',
+          'theme', 'videos', 'about', 'services', 'contact', 'agreement',
+          'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'brandName', 'tagline', 'manifestoQuote',
+          'theme', 'videos', 'about', 'services', 'contact', 'agreement',
+          'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 80
+        && data.tagline is string && data.tagline.size() >= 1 && data.tagline.size() <= 140
+        && data.manifestoQuote is string && data.manifestoQuote.size() <= 800
+        && isValidTheme(data.theme)
+        && data.videos is list && data.videos.size() <= 40
+        && (data.videos.size() == 0 || data.videos[0] is map)
+        && isValidAbout(data.about)
+        && data.services is list && data.services.size() <= 10
+        && (data.services.size() == 0 || data.services[0] is map)
+        && isValidContact(data.contact)
+        && isValidAgreement(data.agreement)
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function isValidClientLink(data) {
+      return data.keys().hasAll([
+          'ownerId', 'slug', 'clientName', 'projectTitle', 'welcomeNote',
+          'hideYoutubeLinks', 'showFullPortfolio', 'themeOverride', 'videos',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && data.keys().hasOnly([
+          'ownerId', 'slug', 'clientName', 'projectTitle', 'welcomeNote',
+          'hideYoutubeLinks', 'showFullPortfolio', 'themeOverride', 'videos',
+          'active', 'createdAt', 'updatedAt'
+        ])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && data.slug is string && data.slug.size() >= 2 && data.slug.size() <= 80 && data.slug.matches('^[a-zA-Z0-9_\\-]+$')
+        && data.clientName is string && data.clientName.size() >= 1 && data.clientName.size() <= 120
+        && data.projectTitle is string && data.projectTitle.size() >= 1 && data.projectTitle.size() <= 160
+        && data.welcomeNote is string && data.welcomeNote.size() <= 600
+        && data.hideYoutubeLinks is bool
+        && data.showFullPortfolio is bool
+        && isValidThemeOverride(data.themeOverride)
+        && data.videos is list && data.videos.size() <= 30
+        && (data.videos.size() == 0 || data.videos[0] is map)
+        && data.active is bool
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    match /test/{docId} {
+      allow get: if docId == 'connection';
+    }
+
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && isAdmin();
+      allow create, update: if isValidId(uid)
+        && isAdmin()
+        && incoming().keys().hasAll(['uid', 'email', 'role', 'createdAt'])
+        && incoming().keys().hasOnly(['uid', 'email', 'role', 'createdAt'])
+        && incoming().uid == uid
+        && incoming().email is string && incoming().email.size() <= 200
+        && incoming().role == 'admin'
+        && incoming().createdAt is timestamp;
+    }
+
+    match /portfolios/{portfolioId} {
+      allow get: if isValidId(portfolioId);
+      allow create: if isValidId(portfolioId)
+        && isAdmin()
+        && isValidPortfolio(incoming())
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(portfolioId)
+        && isAdmin()
+        && isValidPortfolio(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'brandName', 'tagline', 'manifestoQuote', 'theme', 'videos',
+          'about', 'services', 'contact', 'agreement', 'updatedAt'
+        ]);
+      allow delete: if isValidId(portfolioId) && isAdmin();
+    }
+
+    match /clientLinks/{linkId} {
+      allow get: if isValidId(linkId) && (isAdmin() || (resource != null && resource.data.active == true));
+      allow list: if isAdmin() && existing().ownerId == request.auth.uid;
+      allow create: if isValidId(linkId)
+        && isAdmin()
+        && isValidClientLink(incoming())
+        && incoming().slug == linkId
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+      allow update: if isValidId(linkId)
+        && isAdmin()
+        && isValidClientLink(incoming())
+        && incoming().ownerId == existing().ownerId
+        && incoming().slug == existing().slug
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'clientName', 'projectTitle', 'welcomeNote', 'hideYoutubeLinks',
+          'showFullPortfolio', 'themeOverride', 'videos', 'active', 'updatedAt'
+        ]);
+      allow delete: if isValidId(linkId) && isAdmin();
+    }
+  }
+}
